@@ -39,6 +39,7 @@ const css = `
       box-shadow: var(--shadow);
       position: relative;
       overflow:hidden;
+      transform: translateY(0) scale(1);
     }
     .badge{
       display:inline-flex;
@@ -88,7 +89,9 @@ const css = `
       border-color: rgba(110,168,255,.55);
       box-shadow: 0 0 0 4px rgba(110,168,255,.15);
     }
-    button{
+
+    /* --- Button base (now using .btn) --- */
+    .btn{
       padding: 12px 16px;
       border: none;
       border-radius: 12px;
@@ -98,10 +101,53 @@ const css = `
       color: #081021;
       background: linear-gradient(135deg, var(--accent2), var(--accent));
       box-shadow: 0 10px 24px rgba(110,168,255,.25);
-      transition: transform .12s ease, filter .12s ease;
+
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+      min-width: 110px;
     }
-    button:hover{ transform: translateY(-1px); filter: brightness(1.02); }
-    button:active{ transform: translateY(0px); }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+    .btn:active{
+      transform: translateY(1px) scale(0.99);
+    }
+    .btn.loading{
+      pointer-events: none;
+      filter: brightness(0.95);
+      transform: translateY(0) scale(1);
+    }
+    .btn.loading .btn-text{ opacity: 0; }
+    .btn .spinner{
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .btn.loading .spinner{ opacity: 1; }
+
+    .spinner::before{
+      content:"";
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: rgba(255,255,255,.95);
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* small “card pop” on submit */
+    .card.submitting{
+      animation: pop .35s ease;
+    }
+    @keyframes pop{
+      0%{ transform: translateY(0) scale(1); }
+      60%{ transform: translateY(-2px) scale(1.01); }
+      100%{ transform: translateY(0) scale(1); }
+    }
+
     .footer{
       margin-top: 18px;
       display:flex;
@@ -148,7 +194,11 @@ app.get("/", (req, res) => {
 
         <form method="POST" action="/greet">
           <input type="text" name="username" placeholder="Enter your name" required />
-          <button type="submit">Submit</button>
+
+          <button class="btn" type="submit" id="submitBtn">
+            <span class="btn-text">Submit</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
         </form>
 
         <div class="footer">
@@ -156,6 +206,21 @@ app.get("/", (req, res) => {
           <span>Made for assignment ✅</span>
         </div>
       </div>
+
+      <script>
+        const form = document.querySelector("form");
+        const btn = document.getElementById("submitBtn");
+        const card = document.querySelector(".card");
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();               // stop instant redirect
+          btn.classList.add("loading");     // show spinner
+          card.classList.add("submitting"); // small pop animation
+
+          // submit after a short delay so animation is visible
+          setTimeout(() => form.submit(), 450);
+        });
+      </script>
     </body>
     </html>
   `);
@@ -163,6 +228,7 @@ app.get("/", (req, res) => {
 
 app.post("/greet", (req, res) => {
   const name = (req.body.username || "").trim();
+
   res.send(`
     <!doctype html>
     <html lang="en">
